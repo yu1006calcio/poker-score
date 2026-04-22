@@ -17,14 +17,13 @@ h2 {
 
 /* 横スクロール防止 */
 .table-wrap {
-  overflow-x: auto;
+  overflow-x: hidden;
 }
 
 /* テーブル */
 table {
   border-collapse: collapse;
   width: 100%;
-  min-width: 400px;
 }
 
 th, td {
@@ -36,9 +35,23 @@ th, td {
 input {
   width: 100%;
   font-size: 16px;
+  box-sizing: border-box;
 }
 
-/* スマホ見やすく */
+/* ✅ リバイ回数の列だけ細くする */
+th.rebuy,
+td.rebuy {
+  width: 60px;
+  min-width: 50px;
+}
+
+td.rebuy input {
+  padding: 2px;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* スマホ最適化 */
 @media (max-width: 600px) {
   th, td {
     padding: 4px;
@@ -69,23 +82,23 @@ button {
 
 <h2>ポーカー収支計算</h2>
 
-レート：<input type="number" id="rate" value="1">  
-リバイ点数：<input type="number" id="rebuyPoint" value="1000">  
+レート：<input type="number" id="rate" value="1">
+リバイ点数：<input type="number" id="rebuyPoint" value="1000">
 場代：<input type="number" id="tableFee" value="0">
 
 <button onclick="addRow()">＋ プレイヤー追加</button>
 
 <div class="table-wrap">
 <table id="table">
-<thead>
-<tr>
-<th>名前</th>
-<th>最終持ち点</th>
-<th>リバイ回数</th>
-<th>収支</th>
-</tr>
-</thead>
-<tbody></tbody>
+  <thead>
+    <tr>
+      <th>名前</th>
+      <th>最終持ち点</th>
+      <th class="rebuy">リバイ回数</th>
+      <th>収支</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
 </table>
 </div>
 
@@ -99,11 +112,10 @@ function addRow() {
   if (table.rows.length >= maxPlayers) return;
 
   const row = table.insertRow();
-
   row.innerHTML = `
     <td><input></td>
     <td><input type="number" value="0" oninput="calc()"></td>
-    <td><input type="number" value="1" oninput="calc()"></td>
+    <td class="rebuy"><input type="number" value="1" oninput="calc()"></td>
     <td class="result">0</td>
   `;
 }
@@ -134,7 +146,6 @@ function calc() {
 
     const cell = row.cells[3];
     cell.textContent = (result > 0 ? "+" : "") + result;
-
     cell.className = "result " + (result > 0 ? "plus" : result < 0 ? "minus" : "zero");
   });
 
@@ -158,7 +169,6 @@ function calc() {
   `;
 }
 
-// 初期
 for (let i = 0; i < 3; i++) addRow();
 calc();
 </script>
