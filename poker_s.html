@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ポーカー収支計算</title>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  margin: 0;
+  background: #f5f6fa;
+}
+
+.container {
+  max-width: 500px;
+  margin: auto;
+  padding: 15px;
+}
+
+h2 {
+  text-align: center;
+}
+
+/* 設定 */
+.settings {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
+.settings input {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 8px;
+  font-size: 16px;
+}
+
+/* プレイヤー */
+.player {
+  background: white;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.player input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 5px;
+  font-size: 16px;
+}
+
+.result {
+  text-align: right;
+  font-size: 18px;
+  font-weight: bold;
+  padding: 5px;
+  border-radius: 6px;
+}
+
+.plus {
+  color: green;
+  background: #eaffea;
+}
+
+.minus {
+  color: red;
+  background: #ffeaea;
+}
+
+.zero {
+  color: black;
+}
+
+/* ボタン */
+button {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  background: #007bff;
+  color: white;
+  margin-bottom: 15px;
+}
+
+/* サマリー */
+.summary {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h2>ポーカー収支計算</h2>
+
+<div class="settings">
+  レート（1点）<input type="number" id="rate" value="1" oninput="calc()">
+  リバイ点数<input type="number" id="rebuyPoint" value="1000" oninput="calc()">
+  場代<input type="number" id="tableFee" value="0" oninput="calc()">
+</div>
+
+<button onclick="addPlayer()">＋ プレイヤー追加</button>
+
+<div id="players"></div>
+
+<div class="summary" id="summary"></div>
+
+</div>
+
+<script>
+let maxPlayers = 10;
+
+function addPlayer() {
+  const container = document.getElementById("players");
+  if (container.children.length >= maxPlayers) return;
+
+  const div = document.createElement("div");
+  div.className = "player";
+
+  div.innerHTML = `
+    名前<input>
+    最終持ち点<input type="number" value="0" oninput="calc()">
+    リバイ回数<input type="number" value="1" oninput="calc()">
+    <div class="result zero">0</div>
+  `;
+
+  container.appendChild(div);
+}
+
+function calc() {
+  const rate = Number(rateInput()) || 0;
+  const rebuyPoint = Number(rebuyInput()) || 0;
+  const tableFee = Number(feeInput()) || 0;
+
+  const players = document.querySelectorAll(".player");
+  const count = players.length;
+
+  let totalPoint = 0;
+  let totalRebuy = 0;
+
+  const feePerPerson = count > 0
+    ? Math.ceil((tableFee / count) / 10) * 10
+    : 0;
+
+  players.forEach(p => {
+    const point = Number(p.children[1].value) || 0;
+    const rebuy = Number(p.children[3].value) || 0;
+
+    totalPoint += point;
+    totalRebuy += rebuy;
+
+    const result = point * rate - rebuy * rebuyPoint * rate - feePerPerson;
+
+    const resDiv = p.children[4];
+    resDiv.textContent = (result > 0 ? "+" : "") + result;
+
+    resDiv.className = "result " + (result > 0 ? "plus" : result < 0 ? "minus" : "zero");
+  });
+
+  const rebuyTotal = totalRebuy * rebuyPoint;
+
+  let msg = "";
+  if (totalPoint === rebuyTotal) {
+    msg = "OK";
+  } else if (totalPoint > rebuyTotal) {
+    msg = `持ち点が +${totalPoint - rebuyTotal} 点多い`;
+  } else {
+    msg = `リバイ側が +${rebuyTotal - totalPoint} 点多い`;
+  }
+
+  document.getElementById("summary").innerHTML = `
+    人数：${count}人<br>
+    持ち点合計：${totalPoint}<br>
+    リバイ合計：${totalRebuy}<br>
+    判定：${msg}<br>
+    場代（1人）：${feePerPerson}
+  `;
+}
+
+function rateInput() { return document.getElementById("rate").value; }
+function rebuyInput() { return document.getElementById("rebuyPoint").value; }
+function feeInput() { return document.getElementById("tableFee").value; }
+
+// 初期3人
+for (let i = 0; i < 3; i++) addPlayer();
+calc();
+</script>
+
+</body>
+</html>
