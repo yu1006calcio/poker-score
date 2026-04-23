@@ -15,12 +15,44 @@ h2 {
   text-align: center;
 }
 
-/* 横スクロール防止 */
-.table-wrap {
-  overflow-x: hidden;
+/* ===== ハンバーガーメニュー ===== */
+.menu-wrapper {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
 }
 
-/* テーブル */
+.menu-button {
+  font-size: 28px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.menu {
+  display: none;
+  margin-top: 5px;
+  background: #f4f4f4;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 8px;
+  width: 180px;
+}
+
+.menu.open {
+  display: block;
+}
+
+.menu input,
+.menu select,
+.menu button {
+  width: 100%;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+/* ===== テーブル ===== */
 table {
   border-collapse: collapse;
   width: 100%;
@@ -38,38 +70,14 @@ input {
   box-sizing: border-box;
 }
 
-/* リバイ回数の列だけ細くする */
 th.rebuy,
 td.rebuy {
   width: 60px;
-  min-width: 50px;
 }
 
-td.rebuy input {
-  padding: 2px;
-  font-size: 14px;
-  text-align: center;
-}
-
-/* スマホ最適化 */
-@media (max-width: 600px) {
-  th, td {
-    padding: 4px;
-    font-size: 12px;
-  }
-}
-
-/* 色 */
 .plus { color: green; font-weight: bold; }
 .minus { color: red; font-weight: bold; }
 .zero { color: black; }
-
-button {
-  width: 100%;
-  padding: 10px;
-  font-size: 16px;
-  margin-top: 10px;
-}
 
 .summary {
   margin-top: 10px;
@@ -79,6 +87,20 @@ button {
 </head>
 
 <body>
+
+<!-- ===== ハンバーガーメニュー ===== -->
+<div class="menu-wrapper">
+  <button class="menu-button" onclick="toggleMenu()">☰</button>
+  <div class="menu" id="menu">
+    <input id="sessionName" placeholder="データ名">
+    <button onclick="saveSession()">💾 保存</button>
+    <button onclick="newSession()">🆕 新規</button>
+    <select id="sessionList" onchange="loadSelected()">
+      <option value="">📂 過去データ</option>
+    </select>
+    <button onclick="deleteSession()">🗑 データ削除</button>
+  </div>
+</div>
 
 <h2>ポーカー収支計算</h2>
 
@@ -91,91 +113,158 @@ button {
 
 <button onclick="addRow()">＋ プレイヤー追加</button>
 
-<div class="table-wrap">
 <table id="table">
-  <thead>
-    <tr>
-      <th>名前</th>
-      <th>最終持ち点</th>
-      <th class="rebuy">リバイ回数</th>
-      <th>収支</th>
-      <th>削除</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
+<thead>
+<tr>
+  <th>名前</th>
+  <th>最終持ち点</th>
+  <th class="rebuy">リバイ</th>
+  <th>収支</th>
+  <th>削除</th>
+</tr>
+</thead>
+<tbody></tbody>
 </table>
-</div>
 
 <div class="summary" id="summary"></div>
 
 <script>
-let maxPlayers = 10;
+let sessions = JSON.parse(localStorage.getItem("pokerSessions") || "{}");
 
-function addRow() {
-  const table = document.querySelector("#table tbody");
-  if (table.rows.length >= maxPlayers) return;
+/* ===== メニュー操作 ===== */
+function toggleMenu() {
+  document.getElementById("menu").classList.toggle("open");
+}
 
-  const row = table.insertRow();
+/* ===== 基本要素 ===== */
+const rate = document.getElementById("rate");
+const rebuyPoint = document.getElementById("rebuyPoint");
+const tableFee = document.getElementById("tableFee");
+const sessionName = document.getElementById("sessionName");
+const sessionList = document.getElementById("sessionList");
+const summary = document.getElementById("summary");
+const table = document.getElementById("table");
+
+/* ===== 行追加 ===== */
+function addRow(data = {}) {
+  const row = table.tBodies[0].insertRow();
   row.innerHTML = `
-    <td><input></td>
-    <td><input type="number" value="0" oninput="calc()"></td>
-    <td class="rebuy"><input type="number" value="0" oninput="calc()"></td>
+    <td><input value="${data.name || ""}"></td>
+    <td><input type="number" value="${data.point || 0}" oninput="calc()"></td>
+    <td class="rebuy"><input type="number" value="${data.rebuy || 0}" oninput="calc()"></td>
     <td class="result">0</td>
     <td><button onclick="this.closest('tr').remove(); calc();">✖</button></td>
   `;
 }
 
+/* ===== 計算 ===== */
 function calc() {
-  const rate = Number(document.getElementById("rate").value) || 0;
-  const rebuyPoint = Number(document.getElementById("rebuyPoint").value) || 0;
-  const tableFee = Number(document.getElementById("tableFee").value) || 0;
-
-  const rows = document.querySelectorAll("#table tbody tr");
+  const rows = table.tBodies[0].rows;
   const players = rows.length;
-
   let totalPoint = 0;
   let totalRebuy = 0;
 
-  const feePerPerson = players > 0
-    ? Math.ceil((tableFee / players) / 10) * 10
+  const fee = players
+    ? Math.ceil((tableFee.value / players) / 10) * 10
     : 0;
 
-  rows.forEach(row => {
-    const point = Number(row.cells[1].querySelector("input").value) || 0;
-    const rebuy = Number(row.cells[2].querySelector("input").value) || 0;
+  [...rows].forEach(r => {
+    const p = +r.cells[1].firstChild.value || 0;
+    const rb = +r.cells[2].firstChild.value || 0;
+    totalPoint += p;
+    totalRebuy += rb;
 
-    totalPoint += point;
-    totalRebuy += rebuy;
-
-    const result = point * rate - rebuy * rebuyPoint * rate - feePerPerson;
-
-    const cell = row.cells[3];
-    cell.textContent = (result > 0 ? "+" : "") + result;
-    cell.className = "result " + (result > 0 ? "plus" : result < 0 ? "minus" : "zero");
+    const res = p * rate.value - rb * rebuyPoint.value * rate.value - fee;
+    const c = r.cells[3];
+    c.textContent = (res > 0 ? "+" : "") + res;
+    c.className = res > 0 ? "plus" : res < 0 ? "minus" : "zero";
   });
 
-  const rebuyTotalPoint = totalRebuy * rebuyPoint;
+  const rebuyTotal = totalRebuy * rebuyPoint.value;
+  const judge =
+    totalPoint === rebuyTotal ? "OK" :
+    totalPoint > rebuyTotal ? `持ち点 +${totalPoint - rebuyTotal}` :
+    `リバイ側 +${rebuyTotal - totalPoint}`;
 
-  let checkMsg = "";
-  if (totalPoint === rebuyTotalPoint) {
-    checkMsg = "OK";
-  } else if (totalPoint > rebuyTotalPoint) {
-    checkMsg = `持ち点が +${totalPoint - rebuyTotalPoint} 点多い`;
-  } else {
-    checkMsg = `リバイ側が +${rebuyTotalPoint - totalPoint} 点多い`;
-  }
-
-  document.getElementById("summary").innerHTML = `
+  summary.innerHTML = `
     人数：${players}人<br>
     持ち点合計：${totalPoint}<br>
     リバイ合計：${totalRebuy}<br>
-    判定：${checkMsg}<br>
-    場代（1人）：${feePerPerson}円
+    判定：${judge}<br>
+    場代（1人）：${fee}円
   `;
 }
 
-for (let i = 0; i < 3; i++) addRow();
-calc();
+/* ===== 保存 ===== */
+function saveSession() {
+  const name = sessionName.value.trim();
+  if (!name) return alert("データ名を入力してください");
+
+  sessions[name] = {
+    rate: rate.value,
+    rebuyPoint: rebuyPoint.value,
+    tableFee: tableFee.value,
+    players: [...table.tBodies[0].rows].map(r => ({
+      name: r.cells[0].firstChild.value,
+      point: r.cells[1].firstChild.value,
+      rebuy: r.cells[2].firstChild.value
+    }))
+  };
+
+  localStorage.setItem("pokerSessions", JSON.stringify(sessions));
+  refreshList();
+  alert("保存しました");
+}
+
+/* ===== 読込 ===== */
+function loadSelected() {
+  const name = sessionList.value;
+  if (!sessions[name]) return;
+
+  table.tBodies[0].innerHTML = "";
+  const d = sessions[name];
+  rate.value = d.rate;
+  rebuyPoint.value = d.rebuyPoint;
+  tableFee.value = d.tableFee;
+  d.players.forEach(p => addRow(p));
+  sessionName.value = name;
+  calc();
+}
+
+/* ===== 削除 ===== */
+function deleteSession() {
+  const name = sessionName.value.trim();
+  if (!sessions[name]) return alert("削除対象がありません");
+  if (!confirm(`「${name}」を削除しますか？`)) return;
+
+  delete sessions[name];
+  localStorage.setItem("pokerSessions", JSON.stringify(sessions));
+  newSession();
+  refreshList();
+  alert("削除しました");
+}
+
+/* ===== 新規 ===== */
+function newSession() {
+  table.tBodies[0].innerHTML = "";
+  for (let i = 0; i < 3; i++) addRow();
+  sessionName.value = new Date().toISOString().slice(0, 10);
+  calc();
+}
+
+/* ===== 一覧更新 ===== */
+function refreshList() {
+  sessionList.innerHTML = `<option value="">📂 過去データ</option>`;
+  Object.keys(sessions).forEach(k => {
+    const o = document.createElement("option");
+    o.value = o.textContent = k;
+    sessionList.appendChild(o);
+  });
+}
+
+/* ===== 初期化 ===== */
+newSession();
+refreshList();
 </script>
 
 </body>
