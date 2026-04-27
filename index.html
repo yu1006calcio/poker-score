@@ -7,12 +7,25 @@
 
 <style>
 body {
-  font-family: sans-serif;
-  padding: 10px;
+  font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
+  padding: 12px;
+  background: #e6f4ee; /* 薄めグリーン */
+  color: #222;
 }
 
 h2 {
   text-align: center;
+  color: #2e6b54;
+  margin-bottom: 10px;
+}
+
+/* ===== 共通カード ===== */
+table,
+.menu,
+.summary {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
 }
 
 /* ===== ハンバーガーメニュー ===== */
@@ -25,19 +38,19 @@ h2 {
 
 .menu-button {
   font-size: 28px;
-  background: none;
+  background: #ffffff;
   border: none;
+  border-radius: 10px;
+  padding: 4px 10px;
   cursor: pointer;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.2);
 }
 
 .menu {
   display: none;
-  margin-top: 5px;
-  background: #f4f4f4;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  padding: 8px;
-  width: 180px;
+  margin-top: 6px;
+  padding: 10px;
+  width: 190px;
 }
 
 .menu.open {
@@ -48,26 +61,56 @@ h2 {
 .menu select,
 .menu button {
   width: 100%;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   font-size: 14px;
+}
+
+/* ===== 入力 ===== */
+input {
+  width: 100%;
+  font-size: 16px;
+  padding: 6px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+input:focus {
+  outline: none;
+  border-color: #7fc8a9;
+}
+
+/* ===== ボタン ===== */
+button {
+  border-radius: 8px;
+  border: none;
+  padding: 6px 10px;
+  cursor: pointer;
+  background: #7fc8a9;
+  color: #0f3d2e;
+  font-weight: bold;
+}
+
+button:hover {
+  opacity: 0.85;
 }
 
 /* ===== テーブル ===== */
 table {
   border-collapse: collapse;
   width: 100%;
+  margin-top: 12px;
+}
+
+th {
+  background: #eef8f3;
+  color: #2e6b54;
 }
 
 th, td {
-  border: 1px solid #ccc;
+  border: 1px solid #d5e6de;
   padding: 6px;
   text-align: center;
-}
-
-input {
-  width: 100%;
-  font-size: 16px;
-  box-sizing: border-box;
 }
 
 th.rebuy,
@@ -75,12 +118,25 @@ td.rebuy {
   width: 60px;
 }
 
-.plus { color: green; font-weight: bold; }
-.minus { color: red; font-weight: bold; }
-.zero { color: black; }
+/* ===== 収支色 ===== */
+.plus {
+  color: #2f9e72;
+  font-weight: bold;
+}
 
+.minus {
+  color: #d65c5c;
+  font-weight: bold;
+}
+
+.zero {
+  color: #333;
+}
+
+/* ===== サマリー ===== */
 .summary {
-  margin-top: 10px;
+  margin-top: 12px;
+  padding: 12px;
   font-weight: bold;
 }
 </style>
@@ -88,7 +144,6 @@ td.rebuy {
 
 <body>
 
-<!-- ===== ハンバーガーメニュー ===== -->
 <div class="menu-wrapper">
   <button class="menu-button" onclick="toggleMenu()">☰</button>
   <div class="menu" id="menu">
@@ -131,12 +186,10 @@ td.rebuy {
 <script>
 let sessions = JSON.parse(localStorage.getItem("pokerSessions") || "{}");
 
-/* ===== メニュー操作 ===== */
 function toggleMenu() {
   document.getElementById("menu").classList.toggle("open");
 }
 
-/* ===== 基本要素 ===== */
 const rate = document.getElementById("rate");
 const rebuyPoint = document.getElementById("rebuyPoint");
 const tableFee = document.getElementById("tableFee");
@@ -145,7 +198,6 @@ const sessionList = document.getElementById("sessionList");
 const summary = document.getElementById("summary");
 const table = document.getElementById("table");
 
-/* ===== 行追加 ===== */
 function addRow(data = {}) {
   const row = table.tBodies[0].insertRow();
   row.innerHTML = `
@@ -157,7 +209,6 @@ function addRow(data = {}) {
   `;
 }
 
-/* ===== 計算 ===== */
 function calc() {
   const rows = table.tBodies[0].rows;
   const players = rows.length;
@@ -195,7 +246,6 @@ function calc() {
   `;
 }
 
-/* ===== 保存 ===== */
 function saveSession() {
   const name = sessionName.value.trim();
   if (!name) return alert("データ名を入力してください");
@@ -216,7 +266,6 @@ function saveSession() {
   alert("保存しました");
 }
 
-/* ===== 読込 ===== */
 function loadSelected() {
   const name = sessionList.value;
   if (!sessions[name]) return;
@@ -231,7 +280,6 @@ function loadSelected() {
   calc();
 }
 
-/* ===== 削除 ===== */
 function deleteSession() {
   const name = sessionName.value.trim();
   if (!sessions[name]) return alert("削除対象がありません");
@@ -244,7 +292,6 @@ function deleteSession() {
   alert("削除しました");
 }
 
-/* ===== 新規 ===== */
 function newSession() {
   table.tBodies[0].innerHTML = "";
   for (let i = 0; i < 3; i++) addRow();
@@ -252,7 +299,6 @@ function newSession() {
   calc();
 }
 
-/* ===== 一覧更新 ===== */
 function refreshList() {
   sessionList.innerHTML = `<option value="">📂 過去データ</option>`;
   Object.keys(sessions).forEach(k => {
@@ -262,7 +308,6 @@ function refreshList() {
   });
 }
 
-/* ===== 初期化 ===== */
 newSession();
 refreshList();
 </script>
